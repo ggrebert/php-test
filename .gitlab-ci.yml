@@ -1,0 +1,22 @@
+stages:
+  - unit-tests
+  - selenium
+
+unit-tests:
+  stage: unit-tests
+  image: php:7
+  script:
+    # install OS dependencies
+    - apt update -y
+    - apt install -y git
+    # install xdebug for code coverage
+    - pear config-set http_proxy ${http_proxy}
+    - pecl install xdebug
+    - echo "zend_extension=$(find /usr/local/lib/php/extensions/ -name xdebug.so)" > /usr/local/etc/php/conf.d/xdebug.ini
+    # install composer
+    - curl -sS https://getcomposer.org/installer | php
+    # install all project dependencies
+    - php composer.phar install
+    # launch unit tests
+    - vendor/bin/phpunit --configuration phpunit.xml --coverage-text
+
