@@ -8,7 +8,8 @@ function __autoload($class_name) {
 
 if ( isset($_GET['email']) ) {
     try {
-        $email = Email::fromString($_GET['email']);
+        $email = $_GET['email'];
+        Email::fromString($email);
         echo '<p>Hi <a href="mailto:' . htmlentities($email) . '">' . htmlentities($email) . '</a></p>';
     }
     catch(InvalidArgumentException $e) {
