@@ -1,23 +1,54 @@
 stages:
-  - unit-tests
-  - selenium
+  - test
+  - deploy
+
+.php: &php
+  image: php:7
+  before_script:
+    - apt-get -qqy update
+    - apt-get -qqy install git
+    - pecl install xdebug 
+    - echo "zend_extension=$(find /usr/local/lib/php/extensions/ -name xdebug.so)" > /usr/local/etc/php/conf.d/xdebug.ini
+    - curl -sS https://getcomposer.org/installer | php
+    - php composer.phar install
+
+.selenium: &selenium
+  <<: *php
+  stage: test
+  script:
+    - php -S 0.0.0.0:80 -t src &
+    - vendor/bin/phpunit --configuration phpunit-selenium.xml
 
 unit-tests:
-  stage: unit-tests
-  image: php:7
+  <<: *php
+  stage: test
   script:
-    # install OS dependencies
-    - apt update -y
-    - apt install -y git
-    # install xdebug for code coverage
-    - pear config-set http_proxy ${http_proxy}
-    - pecl install xdebug
-    - echo "zend_extension=$(find /usr/local/lib/php/extensions/ -name xdebug.so)" > /usr/local/etc/php/conf.d/xdebug.ini
-    # install composer
-    - curl -sS https://getcomposer.org/installer | php
-    # install all project dependencies
-    - php composer.phar install
-    # launch unit tests
-    - vendor/bin/phpunit --configuration phpunit.xml --coverage-text
-  coverage: '^\s*Lines:\s*\d+.\d+\%'
+    - vendor/bin/phpunit --configuration phpunit.xml --coverage-text --colors=never
+
+selenium:firefox:
+  <<: *selenium
+  services:
+    - selenium/standalone-firefox:latest
+  variables:
+    SELENIUM_HOST: selenium__standalone-firefox
+    SELENIUM_DRIVER: firefox
+
+selenium:chrome:
+  <<: *selenium
+  services:
+    - selenium/standalone-chrome:latest
+  variables:
+    SELENIUM_HOST: selenium__standalone-chrome
+    SELENIUM_DRIVER: chrome
+
+deploy:
+  stage: deploy
+  image: docker:latest
+  services:
+    - docker:dind
+  script:
+    - export IMAGE_TAG=$(echo -en $CI_BUILD_REF_NAME | tr -c '[:alnum:]_.-' '-')
+    - docker login -u gitlab-ci-token -p $CI_BUILD_TOKEN $CI_REGISTRY
+    - docker build -t $CI_REGISTRY_IMAGE:$IMAGE_TAG .
+    - docker push $CI_REGISTRY_IMAGE:$IMAGE_TAG
 
