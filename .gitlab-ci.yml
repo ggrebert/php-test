@@ -3,7 +3,7 @@ stages:
   - deploy
 
 .php: &php
-  image: php:7
+  image: php:7-apache
   before_script:
     - apt-get -qqy update
     - apt-get -qqy install git
@@ -16,7 +16,9 @@ stages:
   <<: *php
   stage: test
   script:
-    - php -S 0.0.0.0:80 -t src &
+    - rm -rf /var/www/html
+    - mv src /var/www/html
+    - apache2ctl start
     - vendor/bin/phpunit --configuration phpunit-selenium.xml
 
 unit-tests:
