@@ -30,7 +30,7 @@ unit-tests:
 selenium:firefox:
   <<: *selenium
   services:
-    - selenium/standalone-firefox:latest
+    - selenium/standalone-firefox:2.53.1
   variables:
     SELENIUM_HOST: selenium__standalone-firefox
     SELENIUM_DRIVER: firefox
